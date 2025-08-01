@@ -20,9 +20,6 @@ export default function RootLayout({
         <Script
           src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"
           strategy="afterInteractive"
-          onLoad={() => {
-            console.log("TensorFlow.js loaded successfully");
-          }}
         />
       </body>
     </html>
