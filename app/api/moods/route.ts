@@ -1,6 +1,5 @@
 // File: app/api/moods/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import { MongoClient } from 'mongodb';
 
@@ -9,12 +8,7 @@ const client = new MongoClient(uri);
 const db = client.db('mental_health_tracker');
 const moodsCollection = db.collection('moods');
 
-// Create Supabase client for server-side0.
-function createServerSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
+ 
 
 export async function POST(request: NextRequest) {
   console.log('=== POST /api/moods called ===');
@@ -58,16 +52,28 @@ export async function POST(request: NextRequest) {
       message: 'Mood saved successfully'
     };
     
-    console.log('=== Success: Mood saved ===');
+    // ** IMPORTANT: Trigger n8n workflow after successful mood save **
+    console.log('🚀 Triggering n8n workflow...');
+    await triggerN8nWorkflow({
+      userId,
+      moodText,
+      moodState,
+      sentiment: sentiment || 'neutral',
+      timestamp: timestamp || new Date().toISOString()
+    });
+    
+    console.log('=== Success: Mood saved and n8n triggered ===');
     return NextResponse.json(savedData, { status: 201 });
     
-  } catch (error: any) {
-    console.error('=== POST Error ===', error);
-    return NextResponse.json({ 
-      error: 'Server error while saving mood', 
-      details: error.message,
-      stack: error.stack
-    }, { status: 500 });
+  }catch (error: unknown) {
+  console.error('=== POST Error ===', error);
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  const errorStack = error instanceof Error ? error.stack : undefined;
+  return NextResponse.json({ 
+    error: 'Server error while saving mood', 
+    details: errorMessage,
+    stack: errorStack
+  }, { status: 500 });
   } finally {
     // Close MongoDB connection
     try {
@@ -76,6 +82,38 @@ export async function POST(request: NextRequest) {
     } catch (e) {
       console.warn('Failed to close MongoDB connection:', e);
     }
+  }
+}
+
+// Function to trigger n8n workflow
+async function triggerN8nWorkflow(moodData: {
+  userId: string;
+  moodText: string;
+  moodState: string;
+  sentiment: string;
+  timestamp: string;
+}) {
+  try {
+    console.log('Calling n8n trigger API...');
+    
+    const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/n8n/trigger`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(moodData),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log('✅ n8n workflow triggered successfully:', result);
+    } else {
+      const error = await response.text();
+      console.warn('⚠️ n8n trigger failed (non-critical):', error);
+    }
+  } catch (error) {
+    console.warn('⚠️ n8n trigger error (non-critical):', error);
+    // Don't throw error - n8n failure shouldn't break mood logging
   }
 }
 
@@ -105,7 +143,7 @@ export async function GET(request: NextRequest) {
     
     // Aggregate mood data by state
     const aggregated = Object.entries(
-      moods.reduce((acc: { [key: string]: number }, curr: any) => {
+     moods.reduce((acc: { [key: string]: number }, curr: any) => {
         acc[curr.moodState] = (acc[curr.moodState] || 0) + 1;
         return acc;
       }, {})
@@ -116,12 +154,13 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(aggregated, { status: 200 });
     
-  } catch (error: any) {
-    console.error('=== GET Error ===', error);
-    return NextResponse.json({ 
-      error: 'Failed to fetch moods', 
-      details: error.message 
-    }, { status: 500 });
+  }catch (error: unknown) {
+  console.error('=== GET Error ===', error);
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  return NextResponse.json({ 
+    error: 'Failed to fetch moods', 
+    details: errorMessage 
+  }, { status: 500 });
   } finally {
     try {
       await client.close();

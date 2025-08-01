@@ -3,9 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
 
 const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-const client = new MongoClient(uri);
-const db = client.db('mental_health_tracker');
-const moodsCollection = db.collection('moods');
+
+// Database connection utility
+async function getDatabase() {
+  if (!global._mongoClientPromise) {
+    const client = new MongoClient(uri);
+    global._mongoClientPromise = client.connect();
+  }
+  
+  const client = await global._mongoClientPromise;
+  return client.db('mental_health_tracker');
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +24,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 401 });
     }
 
-    await client.connect();
+    // Get database connection
+    const db = await getDatabase();
+    const moodsCollection = db.collection('moods');
+
     // Fetch raw mood entries sorted by timestamp (most recent first)
     const moods = await moodsCollection
       .find({ userId: userId })
@@ -25,14 +36,14 @@ export async function GET(request: NextRequest) {
       .toArray();
 
     return NextResponse.json(moods, { status: 200 });
-  } catch (error: any) {
-    console.error('Server error fetching raw moods:', error.message);
-    return NextResponse.json({ error: 'Failed to fetch raw mood data' }, { status: 500 });
-  } finally {
-    try {
-      await client.close();
-    } catch (e) {
-      console.warn('Failed to close MongoDB connection:', e);
-    }
+  } catch (error: unknown) {
+  console.error('Server error fetching raw moods:', error instanceof Error ? error.message : String(error));
+  return NextResponse.json({ error: "Unable to fetch insights" }, { status: 500 });
   }
+  // Note: No client.close() here - keep connection alive for reuse
+}
+
+// Add global type declaration
+declare global {
+  var _mongoClientPromise: Promise<MongoClient>;
 }
