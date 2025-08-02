@@ -1620,35 +1620,58 @@ case 'analytics':
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Tab Navigation */}
-        <div className="mb-8">
-          <div className="flex flex-wrap gap-2 bg-white/50 backdrop-blur-md p-2 rounded-3xl border border-gray-200/50">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-2xl font-medium transition-all duration-300 ${
-                  activeTab === tab.id
-                    ? 'bg-gradient-to-r from-teal-500/80 to-emerald-500/80 text-white shadow-lg transform scale-105'
-                    : 'text-gray-600 hover:bg-white/50 hover:text-gray-800'
-                }`}
-              >
-                <span className="text-lg">{tab.icon}</span>
-                <div className="text-left">
-                  <div className="text-sm font-semibold">{tab.label}</div>
-                  <div className="text-xs opacity-75">{tab.description}</div>
-                </div>
-              </button>
-            ))}
+   
+<div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
+  <div className="container mx-auto px-4 py-8">
+    {/* Tab Navigation */}
+    <div className="mb-8">
+      <div className="flex items-center justify-between bg-white/50 backdrop-blur-md p-2 rounded-3xl border border-gray-200/50">
+        
+        {/* Left side - App Name (responsive) */}
+        <div className="flex items-center space-x-3 ml-2">
+          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-emerald-500/90 to-teal-600/90 rounded-xl lg:rounded-2xl flex items-center justify-center shadow-lg border-2 border-white/30">
+            <span className="text-lg lg:text-2xl text-white filter drop-shadow-sm">🌱</span>
+          </div>
+          <div className="text-left hidden sm:block">
+            <h1 className="text-xl lg:text-2xl font-bold text-transparent bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text">
+              تسکین
+            </h1>
+            <p className="text-xs text-gray-600 font-medium -mt-1">Taskeen</p>
           </div>
         </div>
 
-        {/* Tab Content */}
-        {renderTabContent()}
+        {/* Right side - Tab buttons (responsive) */}
+        <div className="flex flex-wrap gap-1 lg:gap-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center space-x-1 lg:space-x-2 px-3 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl font-medium transition-all duration-300 ${
+                activeTab === tab.id
+                  ? 'bg-gradient-to-r from-teal-500/80 to-emerald-500/80 text-white shadow-lg transform scale-105'
+                  : 'text-gray-600 hover:bg-white/50 hover:text-gray-800'
+              }`}
+            >
+              <span className="text-base lg:text-lg">{tab.icon}</span>
+              <div className="text-left hidden md:block">
+                <div className="text-sm font-semibold">{tab.label}</div>
+                <div className="text-xs opacity-75">{tab.description}</div>
+              </div>
+              {/* Mobile - Show only label */}
+              <div className="text-left md:hidden">
+                <div className="text-xs font-semibold">{tab.label}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+
       </div>
     </div>
+
+    {/* Tab Content */}
+    {renderTabContent()}
+  </div>
+</div>
   );
 }
 interface ProfileFormData {
